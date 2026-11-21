@@ -87,6 +87,31 @@ jobs:
               raise ValueError('Unexpected canonical sitemap URLs')
           (out/'source-revision.json').write_text(json.dumps({'repo':'trisanghy/open-iptv-pro','branch':'web/online','sha':sha},indent=2)+'\n',encoding='utf-8')
           print('Homepage synced and validated from commit',sha)
+
+          # Xuất bản changelog Positron tại /positron/, độc lập với website
+          # IPTV của nhánh web/online và không thay đổi trang chủ.
+          # Đọc HTML + catalog từ cùng một commit để tránh lệch phiên bản.
+          positron_api='https://api.github.com/repos/trisanghy/open-iptv-pro/branches/Positron'
+          positron_sha=json.loads(download(positron_api,250000))['commit']['sha']
+          if not re.fullmatch('[0-9a-f]{40}',positron_sha):
+              raise ValueError('Invalid Positron revision')
+          positron_root='https://raw.githubusercontent.com/trisanghy/open-iptv-pro/'+positron_sha+'/docs/positron-features/'
+          positron_html=download(positron_root+'index.html',250000).decode('utf-8')
+          positron_catalog=download(positron_root+'catalog.json',3000000)
+          positron_rows=json.loads(positron_catalog).get('versions',[])
+          if '<html lang="vi">' not in positron_html or 'publicAssets' not in positron_html:
+              raise ValueError('Positron page is not the expected Vietnamese website')
+          if not positron_rows or not isinstance(positron_rows,list):
+              raise ValueError('Positron catalog is empty')
+          positron_out=out/'positron'
+          positron_out.mkdir(parents=True,exist_ok=True)
+          (positron_out/'index.html').write_text(positron_html,encoding='utf-8')
+          (positron_out/'catalog.json').write_bytes(positron_catalog)
+          (positron_out/'source-revision.json').write_text(
+              json.dumps({'repo':'trisanghy/open-iptv-pro','branch':'Positron',
+                          'sha':positron_sha,'versions':len(positron_rows)},
+                         indent=2)+'\n',encoding='utf-8')
+          print('Positron changelog /positron/ prepared:',len(positron_rows),'versions, source',positron_sha)
           PY
       - name: Persist gallery files on the user-site main branch
         shell: bash
