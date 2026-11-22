@@ -128,13 +128,16 @@ jobs:
           set -euo pipefail
           git clone -q --depth=1 --branch main \
             "https://x-access-token:${GH_TOKEN}@github.com/trisanghy/trisanghy.github.io.git" "$RUNNER_TEMP/site-root-repo"
-          mkdir -p "$RUNNER_TEMP/site-root-repo/assets/gallery"
+          mkdir -p "$RUNNER_TEMP/site-root-repo/assets/gallery" "$RUNNER_TEMP/site-root-repo/positron"
           cp -f _site/assets/gallery/*.png "$RUNNER_TEMP/site-root-repo/assets/gallery/"
           cp -f _site/index.html _site/robots.txt _site/sitemap.xml "$RUNNER_TEMP/site-root-repo/"
+          # Giữ /positron/ trong nhánh main, kể cả khi Pages dùng chế độ deploy từ nhánh.
+          # Đồng bộ từ đúng SHA đã được workflow kiểm tra phía trên.
+          cp -f _site/positron/index.html _site/positron/catalog.json _site/positron/source-revision.json "$RUNNER_TEMP/site-root-repo/positron/"
           cd "$RUNNER_TEMP/site-root-repo"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html robots.txt sitemap.xml assets/gallery
+          git add index.html robots.txt sitemap.xml assets/gallery positron
           if ! git diff --cached --quiet; then
             git commit -qm "assets: refresh current Open IPTV Pro UI screenshots"
             git push origin HEAD:main
